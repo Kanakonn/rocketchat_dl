@@ -10,6 +10,10 @@ Setup the channels that need to be downloaded and which directory they should be
 ```bash
 cp config.json.default config.json
 ```
+Install the necessary requirements
+```bash
+pip install -r requirements.txt
+```
 Then run the script.
 ```bash
 python download.py
