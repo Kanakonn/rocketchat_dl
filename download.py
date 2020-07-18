@@ -104,9 +104,16 @@ if __name__ == "__main__":
                         else:
                             filename = "{}{}".format(message['_id'], extension)
                         print("- Saving {} as {}...".format(url, filename))
-                        attachment_data = requests.get("{}{}".format(CONFIG['server'], url)).content
+                        if url[0] == "/" and CONFIG['server'][-1] == "/":
+                            server_url = CONFIG['server'][:-1]
+                        else:
+                            server_url = CONFIG['server']
+                        attachment_data = requests.get("{}{}".format(server_url, url))
+                        if attachment_data.status_code != 200:
+                            print("Could not save {}".format(url))
+                            print("Error code {}".format(attachment_data.status_code))
                         with open(os.path.join(channel['directory'], filename), 'wb') as f:
-                            f.write(attachment_data)
+                            f.write(attachment_data.content)
                         offset += 1
                         # print(attachment)
 
