@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import time
 from pprint import pprint
 
 import requests
@@ -11,6 +12,7 @@ CONFIG = {}
 HISTORY = {}
 ROCKET = None
 CHANNELS = []
+RATE_LIMIT = 0
 
 def get_channel_id(channel_name):
     for channel in CHANNELS:
@@ -27,6 +29,7 @@ def get_channel_history(channel_id):
         messages = ROCKET.channels_history(channel_id, count=count, oldest=history_timestamp).json()['messages']
     else:
         messages = ROCKET.channels_history(channel_id, count=count).json()['messages']
+    time.sleep(RATE_LIMIT)
 
     while len(messages) > 0:
         for msg in messages:
@@ -37,6 +40,7 @@ def get_channel_history(channel_id):
             messages = ROCKET.channels_history(channel_id, count=count, offset=offset, oldest=history_timestamp).json()['messages']
         else:
             messages = ROCKET.channels_history(channel_id, count=count, offset=offset).json()['messages']
+        time.sleep(RATE_LIMIT)
 
 
 if __name__ == "__main__":
@@ -50,7 +54,7 @@ if __name__ == "__main__":
         print("Invalid configuration file, check config.json")
         sys.exit(2)
 
-    if not all(x in CONFIG.keys() for x in ["user_id", "auth_token", "server", "channels"]):
+    if not all(x in CONFIG.keys() for x in ["user_id", "auth_token", "server", "rate_limit_ms", "channels"]):
         print("Missing one or more required config keys!")
         sys.exit(3)
 
@@ -66,9 +70,14 @@ if __name__ == "__main__":
         print("History file is corrupted! Please remove it or fix it.")
         sys.exit(4)
 
+    RATE_LIMIT = CONFIG['rate_limit_ms'] / 1000
+
     with sessions.Session() as session:
+        print("Connecting to rocket.chat instance...")
+        print("Rate limiter is set to {} seconds".format(RATE_LIMIT))
         ROCKET = RocketChat(user_id=CONFIG['user_id'], auth_token=CONFIG['auth_token'], server_url=CONFIG['server'], session=session)
         CHANNELS = ROCKET.channels_list().json()['channels']
+        time.sleep(RATE_LIMIT)
 
         for channel in CONFIG['channels']:
             print("Dumping channel {}...".format(channel['name']))
@@ -108,14 +117,26 @@ if __name__ == "__main__":
                             server_url = CONFIG['server'][:-1]
                         else:
                             server_url = CONFIG['server']
-                        attachment_data = requests.get("{}{}".format(server_url, url))
+                        attachment_data = session.get("{}{}".format(server_url, url))
+                        time.sleep(RATE_LIMIT)
                         if attachment_data.status_code != 200:
+                            retries = 0
+                            success = False
                             print("Could not save {}".format(url))
                             print("Error code {}".format(attachment_data.status_code))
+                            while retries < 3 and not success:
+                                print("Sleeping {}s and retrying ({}/3)".format(RATE_LIMIT * (retries + 2), retries+1))
+                                time.sleep(RATE_LIMIT * (retries + 2))
+                                attachment_data = session.get("{}{}".format(server_url, url))
+                                if attachment_data.status_code != 200:
+                                    print("Could not save {} (try {}/3)".format(url, retries+1))
+                                    print("Error code {}".format(attachment_data.status_code))
+                                    retries += 1
+                                else:
+                                    success = True
                         with open(os.path.join(channel['directory'], filename), 'wb') as f:
                             f.write(attachment_data.content)
                         offset += 1
-                        # print(attachment)
 
             # Write history file
             if newest_message_timestamp is not None:

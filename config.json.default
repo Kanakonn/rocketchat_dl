@@ -2,6 +2,7 @@
   "server": "https:/your.rocket.chat/",
   "user_id": "",
   "auth_token": "",
+  "rate_limit_ms": 10000,
   "channels": [
     {"name": "general", "directory": "./downloads/general"}
   ]
