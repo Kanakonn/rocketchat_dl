@@ -1,0 +1,8 @@
+{
+  "server": "https:/your.rocket.chat/",
+  "user_id": "",
+  "auth_token": "",
+  "channels": [
+    {"name": "general", "directory": "./downloads/general"}
+  ]
+}
