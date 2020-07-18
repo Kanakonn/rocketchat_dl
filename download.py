@@ -71,17 +71,17 @@ if __name__ == "__main__":
         CHANNELS = ROCKET.channels_list().json()['channels']
 
         for channel in CONFIG['channels']:
-            print(f"Dumping channel {channel['name']}...")
+            print("Dumping channel {}...".format(channel['name']))
             channel_id = get_channel_id(channel['name'])
             if channel_id is None:
-                print(f"Channel {channel['name']} not found!")
+                print("Channel {} not found!".format(channel['name']))
                 continue
 
             if not os.path.exists(channel['directory']):
                 os.makedirs(channel['directory'])
 
             if not os.path.isdir(channel['directory']):
-                print(f"Directory specified for channel {channel['name']} ({channel['directory']}) is not a directory!")
+                print("Directory specified for channel {} ({}) is not a directory!".format(channel['name'], channel['directory']))
 
             newest_message_timestamp = None
             for message in get_channel_history(channel_id):
@@ -100,11 +100,11 @@ if __name__ == "__main__":
 
                         _, extension = os.path.splitext(url)
                         if needs_offset:
-                            filename = f"{message['_id']}-{offset}{extension}"
+                            filename = "{}-{}{}".format(message['_id'], offset, extension)
                         else:
-                            filename = f"{message['_id']}{extension}"
-                        print(f"- Saving {url} as {filename}...")
-                        attachment_data = requests.get(f"{CONFIG['server']}{url}").content
+                            filename = "{}{}".format(message['_id'], extension)
+                        print("- Saving {} as {}...".format(url, filename))
+                        attachment_data = requests.get("{}{}".format(CONFIG['server'], url)).content
                         with open(os.path.join(channel['directory'], filename), 'wb') as f:
                             f.write(attachment_data)
                         offset += 1
@@ -115,6 +115,6 @@ if __name__ == "__main__":
                 HISTORY[channel_id] = newest_message_timestamp
             with open('history.json', 'w') as f:
                 f.write(json.dumps(HISTORY))
-            print(f"Done with channel {channel['name']}")
+            print("Done with channel {}".format(channel['name']))
 
     print("Done!")
