@@ -1,4 +1,5 @@
 import json
+import mimetypes
 import os
 import sys
 import time
@@ -110,7 +111,12 @@ if __name__ == "__main__":
                         if "video_url" in attachment:
                             url = attachment['video_url']
 
-                        _, extension = os.path.splitext(url)
+                        extension = None
+                        if "image_type" in attachment:
+                            extension = mimetypes.guess_extension(attachment['image_type'])
+                        if extension is None:
+                            _, extension = os.path.splitext(url)
+
                         if needs_offset:
                             filename = "{}-{}{}".format(message['_id'], offset, extension)
                         else:
