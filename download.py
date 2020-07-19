@@ -13,6 +13,7 @@ HISTORY = {}
 ROCKET = None
 CHANNELS = []
 RATE_LIMIT = 0
+HEADERS = {}
 
 def get_channel_id(channel_name):
     for channel in CHANNELS:
@@ -71,6 +72,8 @@ if __name__ == "__main__":
         sys.exit(4)
 
     RATE_LIMIT = CONFIG['rate_limit_ms'] / 1000
+    HEADERS['X-Auth-Token'] = CONFIG['auth_token']
+    HEADERS['X-User-Id'] = CONFIG['user_id']
 
     with sessions.Session() as session:
         print("Connecting to rocket.chat instance...")
@@ -117,7 +120,7 @@ if __name__ == "__main__":
                             server_url = CONFIG['server'][:-1]
                         else:
                             server_url = CONFIG['server']
-                        attachment_data = session.get("{}{}".format(server_url, url))
+                        attachment_data = session.get("{}{}".format(server_url, url), headers=HEADERS)
                         time.sleep(RATE_LIMIT)
                         if attachment_data.status_code != 200:
                             retries = 0
@@ -127,7 +130,7 @@ if __name__ == "__main__":
                             while retries < 3 and not success:
                                 print("Sleeping {}s and retrying ({}/3)".format(RATE_LIMIT * (retries + 2), retries+1))
                                 time.sleep(RATE_LIMIT * (retries + 2))
-                                attachment_data = session.get("{}{}".format(server_url, url))
+                                attachment_data = session.get("{}{}".format(server_url, url), headers=HEADERS)
                                 if attachment_data.status_code != 200:
                                     print("Could not save {} (try {}/3)".format(url, retries+1))
                                     print("Error code {}".format(attachment_data.status_code))
