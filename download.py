@@ -104,30 +104,38 @@ if __name__ == "__main__":
                     offset = 0
                     needs_offset = len(message['attachments']) > 1
                     for attachment in message['attachments']:
-                        if "image_url" in attachment:
+                        url = None
+                        if "image_url" in attachment and attachment['image_url'] is not None:
                             url = attachment['image_url']
-                        if "audio_url" in attachment:
+                        if "audio_url" in attachment and attachment['audio_url'] is not None:
                             url = attachment['audio_url']
-                        if "video_url" in attachment:
+                        if "video_url" in attachment and attachment['video_url'] is not None:
                             url = attachment['video_url']
 
                         extension = None
                         if "image_type" in attachment:
                             extension = mimetypes.guess_extension(attachment['image_type'])
-                        if extension is None:
+                        if extension is None and url is not None:
                             _, extension = os.path.splitext(url)
 
                         if needs_offset:
                             filename = "{}-{}{}".format(message['_id'], offset, extension)
                         else:
                             filename = "{}{}".format(message['_id'], extension)
-                        print("- Saving {} as {}...".format(url, filename))
+
                         if url[0] == "/" and CONFIG['server'][-1] == "/":
                             server_url = CONFIG['server'][:-1]
                         else:
                             server_url = CONFIG['server']
-                        attachment_data = session.get("{}{}".format(server_url, url), headers=HEADERS)
+
+                        if not "http://" in url and not "https://" in url:
+                            url = "{}{}".format(server_url, url)
+
+                        print("- Saving {} as {}...".format(url, filename))
+
+                        attachment_data = session.get(url, headers=HEADERS)
                         time.sleep(RATE_LIMIT)
+
                         if attachment_data.status_code != 200:
                             retries = 0
                             success = False
